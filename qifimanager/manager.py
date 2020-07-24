@@ -13,7 +13,7 @@ def mergex(dict1, dict2):
 
 
 class QA_QIFIMANAGER():
-    def __init__(self):
+    def __init__(self, mongo_ip=mongo_ip):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
@@ -24,7 +24,7 @@ class QA_QIFIMANAGER():
     def get_allaccountname(self):
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKSt04b_a2009_30min'):
+    def get_historyassets(self, account_cookie='KTKSt04b_a2009_30min', start='2020-02-01', end=str(datetime.date.today())):
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
@@ -32,7 +32,7 @@ class QA_QIFIMANAGER():
             res['trading_day'])).set_index('datetime').sort_index()
         res = res.balance
         res.name = account_cookie
-        return res.drop_duplicates().loc['2020-02-02':]
+        return res.drop_duplicates().loc[start:end]
 
     def get_historytrade(self, account_cookie='KTKSt04b_a2009_30min'):
         b = [item['trades'].values() for item in self.database.find(
