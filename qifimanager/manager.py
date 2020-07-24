@@ -4,14 +4,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-
+from qaenv import mongo_ip
 
 def mergex(dict1, dict2):
     dict1.update(dict2)
     return dict1
 
 
-a = pymongo.MongoClient('mgdb').quantaxis.history
+a = pymongo.MongoClient(mongo_ip).quantaxis.history
 a.create_index([("account_cookie", pymongo.ASCENDING),
                 ("trading_day", pymongo.ASCENDING)], unique=True)
 
