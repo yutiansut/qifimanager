@@ -80,3 +80,8 @@ class QA_QIFIMANAGER():
         res = res.balance
         res.name = account_cookie
         return res
+
+
+if __name__ == "__main__":
+    manager = QA_QIFIMANAGER()
+    print(manager.get_allaccountname())
