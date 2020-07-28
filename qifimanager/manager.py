@@ -12,27 +12,67 @@ def mergex(dict1, dict2):
     return dict1
 
 
+def promise_list(value):
+    return value if isinstance(value, list) else [value]
+
+
 class QA_QIFIMANAGER():
-    def __init__(self, mongo_ip=mongo_ip):
+    """
+    用于管理单 qifi 的历史交易情况
+
+    --> 对标 QAAccount 的历史回测模式
+    --> 需要增加 QARisk/ QAPerformance 部分的支持
+    --> 需要增加对于 QAWEBSERVER 部分的支持
+    --> 需要增加对于 web 前端部分的支持
+
+    """
+
+    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKSt04b_a2009_30min'):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
 
-    def promise_list(self, value):
+        self.account_cookie = account_cookie
+        self.assets = self.get_historyassets(account_cookie)
+        self.trade = self.get_historytrade(account_cookie)
+
+
+
+    def init_account(self, account_cookie):
+        self.account_cookie = account_cookie
+        self.assets = self.get_historyassets(self.account_cookie)
+        self.trade = self.get_historytrade(self.account_cookie)
+
+
+    @property
+    def month_assets(self):
+        return self.assets.resample('M').last()
+
+    @property
+    def month_assets_profit(self):
+
+        res = pd.concat([pd.Series(self.assets.iloc[0]),
+                         self.month_assets]).diff().dropna()
+        res.index = res.index.map(str)
+        return res
+
+
+    def promise_list(self, value) -> list:
         return value if isinstance(value, list) else [value]
 
-    def get_allaccountname(self):
+    def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKSt04b_a2009_30min', start='2020-02-01', end=str(datetime.date.today())):
+    def get_historyassets(self, account_cookie='KTKSt04b_a2009_30min', start='2020-02-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
         res = res.assign(datetime=pd.to_datetime(
-            res['trading_day'])).set_index('datetime').sort_index()
+            res['trading_day']), balance=res.balance.apply(round, 2)).set_index('datetime').sort_index()
         res = res.balance
         res.name = account_cookie
-        return res.drop_duplicates().loc[start:end]
+
+        return res.bfill().ffill().loc[start:end]
 
     def get_historytrade(self, account_cookie='KTKSt04b_a2009_30min'):
         b = [item['trades'].values() for item in self.database.find(
@@ -61,7 +101,6 @@ class QA_QIFIMANAGER():
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
-
         return res.set_index('trading_day')
 
     def get_lastpos(self, account_cookie='KTKSt04b_a2009_30min'):
@@ -82,6 +121,19 @@ class QA_QIFIMANAGER():
         return res
 
 
+
+    
+
+
 if __name__ == "__main__":
-    manager = QA_QIFIMANAGER()
-    print(manager.get_allaccountname())
+    manager = QA_QIFIMANAGER('192.168.2.124')
+    #acc = manager.get_allaccountname()
+    # print()
+    import matplotlib.pyplot as plt
+    manager.get_historyassets().plot()
+    plt.show()
+
+    r = manager.month_assets_profit
+    r.plot.bar()
+    plt.show()
+    print(r)
