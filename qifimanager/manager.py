@@ -60,6 +60,11 @@ class QA_QIFIMANAGER():
     def promise_list(self, value) -> list:
         return value if isinstance(value, list) else [value]
 
+    def get_allportfolio(self) -> list:
+        return list(set([i['portfolio'] for i in self.database.find({}, {'portfolio': 1, '_id': 0})]))
+    def get_portfolio_account(self, portfolio) -> list:
+        return list(set([i['account_cookie'] for i in self.database.find({'portfolio': portfolio}, {'account_cookie': 1, '_id': 0})]))
+
     def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
