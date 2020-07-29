@@ -27,7 +27,7 @@ class QA_QIFIMANAGER():
 
     """
 
-    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKSt04b_a2009_30min'):
+    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t04b_a2009_30min'):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
@@ -68,7 +68,7 @@ class QA_QIFIMANAGER():
     def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKSt04b_a2009_30min', start='2020-02-01', end=str(datetime.date.today())) -> pd.Series:
+    def get_historyassets(self, account_cookie='KTKS_t04b_a2009_30min', start='2020-02-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
@@ -79,7 +79,7 @@ class QA_QIFIMANAGER():
 
         return res.bfill().ffill().loc[start:end]
 
-    def get_historytrade(self, account_cookie='KTKSt04b_a2009_30min'):
+    def get_historytrade(self, account_cookie='KTKS_t04b_a2009_30min'):
         b = [item['trades'].values() for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'trades': 1, 'trading_day': 1})]
         i = []
@@ -101,21 +101,21 @@ class QA_QIFIMANAGER():
 
         return rp[rp > 0.5].sort_values().tail(2)
 
-    def get_historypos(self, account_cookie='KTKSt04b_a2009_30min'):
+    def get_historypos(self, account_cookie='KTKS_t04b_a2009_30min'):
         b = [mergex(list(item['positions'].values())[0], {'trading_day': item['trading_day']}) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.set_index('trading_day')
 
-    def get_lastpos(self, account_cookie='KTKSt04b_a2009_30min'):
+    def get_lastpos(self, account_cookie='KTKS_t04b_a2009_30min'):
         b = [mergex(list(item['positions'].values())[0], {'trading_day': item['trading_day']}) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.iloc[-1]
 
-    def get_historymargin(self, account_cookie='KTKSt04b_a2009_30min'):
+    def get_historymargin(self, account_cookie='KTKS_t04b_a2009_30min'):
         b = [(item['accounts']['margin'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])

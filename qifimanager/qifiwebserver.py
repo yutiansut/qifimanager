@@ -8,7 +8,7 @@ class QAQIFI_Handler(QABaseHandler):
     def get(self):
         action = self.get_argument('action', 'acchistory')
 
-        acc = self.get_argument('account_cookie', 'KTKSt04b_a2009_30min')
+        acc = self.get_argument('account_cookie', 'KTKS_t04b_a2009_30min')
         self.manager.init_account(acc)
         if action == 'acchistory':
             """
