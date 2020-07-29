@@ -95,9 +95,10 @@ class QAQIFI_Handler(QABaseHandler):
             res = self.manager.get_allportfolio()
             self.write({'res': res})
         elif action == 'accountinportfolio':
-            portfolio = self.get_argument('portfolio', 'test')
-            res = self.manager.get_portfolio_account(portfolio)
-            self.write({'res': res})
+            portfolio = self.get_argument('portfolio', 't12')
+            res = self.manager.get_portfolio_panel(portfolio)
+
+            self.write({'res': QA_util_to_json_from_pandas(res)})
 
 if __name__ == "__main__":
     start_server([(r"/qifi", QAQIFI_Handler)], '0.0.0.0', 8019)
