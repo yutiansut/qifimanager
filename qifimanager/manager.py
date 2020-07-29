@@ -29,8 +29,8 @@ class QA_QIFIMANAGER():
 
     def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t04b_a2009_30min'):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
-        self.database.create_index([("account_cookie", pymongo.DESCENDING),
-                            ("trading_day", pymongo.DESCENDING)], unique=True)
+        self.database.create_index([("account_cookie", pymongo.ASCENDING),
+                            ("trading_day", pymongo.ASCENDING)], unique=True)
 
         self.account_cookie = account_cookie
         self.assets = self.get_historyassets(account_cookie)
