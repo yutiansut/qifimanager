@@ -30,19 +30,16 @@ class QA_QIFIMANAGER():
     def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t04b_a2009_30min'):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
-                            ("trading_day", pymongo.ASCENDING)], unique=True)
+                                    ("trading_day", pymongo.ASCENDING)], unique=True)
 
         self.account_cookie = account_cookie
         self.assets = self.get_historyassets(account_cookie)
         self.trade = self.get_historytrade(account_cookie)
 
-
-
     def init_account(self, account_cookie):
         self.account_cookie = account_cookie
         self.assets = self.get_historyassets(self.account_cookie)
         self.trade = self.get_historytrade(self.account_cookie)
-
 
     @property
     def month_assets(self):
@@ -56,22 +53,25 @@ class QA_QIFIMANAGER():
         res.index = res.index.map(str)
         return res
 
-
     def promise_list(self, value) -> list:
         return value if isinstance(value, list) else [value]
 
     def get_allportfolio(self) -> list:
         return list(set([i['portfolio'] for i in self.database.find({}, {'portfolio': 1, '_id': 0})]))
+
     def get_portfolio_account(self, portfolio) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({'portfolio': portfolio}, {'account_cookie': 1, '_id': 0})]))
+
     def get_portfolio_panel(self, portfolio) -> pd.DataFrame:
         r = self.get_portfolio_account(portfolio)
-        rp = [self.database.find_one({'account_cookie':i}, {"accounts":1, 'trading_day':1, '_id':0}) for i in r]
+        rp = [self.database.find_one({'account_cookie': i}, {
+                                     "accounts": 1, 'trading_day': 1, '_id': 0}) for i in r]
         return pd.DataFrame([mergex(i['accounts'], {'trading_day': i['trading_day']}) for i in rp])
+
     def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKS_t04b_a2009_30min', start='2020-02-01', end=str(datetime.date.today())) -> pd.Series:
+    def get_historyassets(self, account_cookie='KTKS_t04b_a2009_30min', start='2020-01-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
@@ -127,10 +127,6 @@ class QA_QIFIMANAGER():
         res = res.balance
         res.name = account_cookie
         return res
-
-
-
-    
 
 
 if __name__ == "__main__":
