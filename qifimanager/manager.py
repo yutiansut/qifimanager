@@ -127,16 +127,24 @@ class QA_QIFIMANAGER():
         res.name = account_cookie
         return res
 
+    def get_holding_panel(self, account_cookie, trading_day):
+        b = list(self.database.find_one(
+            {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1})['positions'].values())
+        res = pd.DataFrame(b)
+        res.name = account_cookie
+        return res.assign(code=res.instrument_id).set_index('code')
+
 
 if __name__ == "__main__":
     manager = QA_QIFIMANAGER('192.168.2.124')
-    #acc = manager.get_allaccountname()
-    # print()
-    import matplotlib.pyplot as plt
-    manager.get_historyassets().plot()
-    plt.show()
+    # #acc = manager.get_allaccountname()
+    # # print()
+    # import matplotlib.pyplot as plt
+    # manager.get_historyassets().plot()
+    # plt.show()
 
-    r = manager.month_assets_profit
-    r.plot.bar()
-    plt.show()
-    print(r)
+    # r = manager.month_assets_profit
+    # r.plot.bar()
+    # plt.show()
+    # print(r)
+    print(manager.get_holding_panel('5c9b4ed1-8f13-4006-b24a-8fed6e1d5749', '2018-01-02'))
