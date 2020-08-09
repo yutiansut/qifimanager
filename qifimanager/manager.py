@@ -47,7 +47,6 @@ class QA_QIFIMANAGER():
 
     @property
     def month_assets_profit(self):
-
         res = pd.concat([pd.Series(self.assets.iloc[0]),
                          self.month_assets]).diff().dropna()
         res.index = res.index.map(str)
@@ -71,7 +70,7 @@ class QA_QIFIMANAGER():
     def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKS_t04b_a2009_30min', start='2020-01-01', end=str(datetime.date.today())) -> pd.Series:
+    def get_historyassets(self, account_cookie='KTKS_t04b_a2009_30min', start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
