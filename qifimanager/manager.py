@@ -129,7 +129,7 @@ class QA_QIFIMANAGER():
 
     def get_holding_panel(self, account_cookie, trading_day):
         b = list(self.database.find_one(
-            {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1})['positions'].values())
+            {'account_cookie': account_cookie, 'trading_day': trading_day}, {'_id': 0, 'positions': 1})['positions'].values())
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.assign(code=res.instrument_id).set_index('code')
