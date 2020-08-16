@@ -134,6 +134,15 @@ class QA_QIFIMANAGER():
         res.name = account_cookie
         return res.assign(code=res.instrument_id).set_index('code')
 
+    def get_holding_block(self, account_cookie, trading_day):
+        b = list(self.database.find_one(
+            {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1})['positions'].values())
+        res = pd.DataFrame(b)
+        res.name = account_cookie
+
+        #res.assign(block = )
+
+        return res.assign(code=res.instrument_id).set_index('code')
 
 if __name__ == "__main__":
     manager = QA_QIFIMANAGER('192.168.2.124')
