@@ -27,7 +27,7 @@ class QA_QIFIMANAGER():
 
     """
 
-    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t04b_a2009_30min'):
+    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t01_au2012_5min'):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
@@ -70,7 +70,7 @@ class QA_QIFIMANAGER():
     def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKS_t04b_a2009_30min', start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
+    def get_historyassets(self, account_cookie='KTKS_t01_au2012_5min', start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
@@ -81,15 +81,16 @@ class QA_QIFIMANAGER():
 
         return res.bfill().ffill().loc[start:end]
 
-    def get_historytrade(self, account_cookie='KTKS_t04b_a2009_30min'):
+    def get_historytrade(self, account_cookie='KTKS_t01_au2012_5min'):
         b = [item['trades'].values() for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'trades': 1, 'trading_day': 1})]
         i = []
         for ix in b:
             i.extend(list(ix))
         res = pd.DataFrame(i)
-        res = res.assign(account_cookie=res.user_id, code=res.instrument_id,
-                         tradetime=res.trade_date_time.apply(lambda x:  datetime.datetime.fromtimestamp(x/1000000000))).set_index(['tradetime', 'code']).sort_index()
+        #print(res)
+        res = res.assign(account_cookie=res['user_id'], code=res['instrument_id'],tradetime=res['trade_date_time'].apply(
+            lambda x:  datetime.datetime.fromtimestamp(x/1000000000))).set_index(['tradetime', 'code']).sort_index()
         return res.drop_duplicates().sort_index()
 
     def get_sharpe(self, n):
@@ -103,21 +104,21 @@ class QA_QIFIMANAGER():
 
         return rp[rp > 0.5].sort_values().tail(2)
 
-    def get_historypos(self, account_cookie='KTKS_t04b_a2009_30min'):
+    def get_historypos(self, account_cookie='KTKS_t01_au2012_5min'):
         b = [mergex(list(item['positions'].values())[0], {'trading_day': item['trading_day']}) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.set_index('trading_day')
 
-    def get_lastpos(self, account_cookie='KTKS_t04b_a2009_30min'):
+    def get_lastpos(self, account_cookie='KTKS_t01_au2012_5min'):
         b = [mergex(list(item['positions'].values())[0], {'trading_day': item['trading_day']}) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.iloc[-1]
 
-    def get_historymargin(self, account_cookie='KTKS_t04b_a2009_30min'):
+    def get_historymargin(self, account_cookie='KTKS_t01_au2012_5min'):
         b = [(item['accounts']['margin'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
@@ -140,9 +141,10 @@ class QA_QIFIMANAGER():
         res = pd.DataFrame(b)
         res.name = account_cookie
 
-        #res.assign(block = )
+        # res.assign(block = )
 
         return res.assign(code=res.instrument_id).set_index('code')
+
 
 if __name__ == "__main__":
     manager = QA_QIFIMANAGER('192.168.2.124')
@@ -156,4 +158,5 @@ if __name__ == "__main__":
     # r.plot.bar()
     # plt.show()
     # print(r)
-    print(manager.get_holding_panel('5c9b4ed1-8f13-4006-b24a-8fed6e1d5749', '2018-01-02'))
+    print(manager.get_holding_panel(
+        '5c9b4ed1-8f13-4006-b24a-8fed6e1d5749', '2018-01-02'))
