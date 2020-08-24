@@ -1,7 +1,7 @@
 from QAWebServer.basehandles import QABaseHandler
 from QAWebServer.QA_Web import start_server
 from QUANTAXIS.QAUtil import QA_util_to_json_from_pandas
-from manager import QA_QIFIMANAGER, QA_QIFISMANAGER
+from qifimanager.manager import QA_QIFIMANAGER, QA_QIFISMANAGER
 from qaenv import mongo_ip
 class QAQIFI_Handler(QABaseHandler):
     #manager = QA_QIFIMANAGER(mongo_ip)
