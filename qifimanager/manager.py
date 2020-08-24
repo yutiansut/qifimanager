@@ -52,6 +52,46 @@ class QA_QIFIMANAGER():
         res.index = res.index.map(str)
         return res
 
+    def get_historyassets(self, account_cookie='KTKS_t01_au2012_5min', start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
+        b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
+            {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
+        res = pd.DataFrame(b, columns=['balance', 'trading_day'])
+        res = res.assign(datetime=pd.to_datetime(
+            res['trading_day']), balance=res.balance.apply(round, 2)).set_index('datetime').sort_index()
+        res = res.balance
+        res.name = account_cookie
+
+        return res.bfill().ffill().loc[start:end]
+
+    def get_historytrade(self, account_cookie='KTKS_t01_au2012_5min'):
+        b = [item['trades'].values() for item in self.database.find(
+            {'account_cookie': account_cookie}, {'_id': 0, 'trades': 1, 'trading_day': 1})]
+        i = []
+        for ix in b:
+            i.extend(list(ix))
+        res = pd.DataFrame(i)
+        # print(res)
+        res = res.assign(account_cookie=res['user_id'], code=res['instrument_id'], tradetime=res['trade_date_time'].apply(
+            lambda x:  datetime.datetime.fromtimestamp(x/1000000000))).set_index(['tradetime', 'code']).sort_index()
+        return res.drop_duplicates().sort_index()
+
+
+class QA_QIFISMANAGER():
+    """
+    用于管理单 qifi 的历史交易情况
+
+    --> 对标 QAAccount 的历史回测模式
+    --> 需要增加 QARisk/ QAPerformance 部分的支持
+    --> 需要增加对于 QAWEBSERVER 部分的支持
+    --> 需要增加对于 web 前端部分的支持
+
+    """
+
+    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t01_au2012_5min'):
+        self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
+        self.database.create_index([("account_cookie", pymongo.ASCENDING),
+                                    ("trading_day", pymongo.ASCENDING)], unique=True)
+
     def promise_list(self, value) -> list:
         return value if isinstance(value, list) else [value]
 
@@ -88,13 +128,16 @@ class QA_QIFIMANAGER():
         for ix in b:
             i.extend(list(ix))
         res = pd.DataFrame(i)
-        #print(res)
-        res = res.assign(account_cookie=res['user_id'], code=res['instrument_id'],tradetime=res['trade_date_time'].apply(
+        # print(res)
+        res = res.assign(account_cookie=res['user_id'], code=res['instrument_id'], tradetime=res['trade_date_time'].apply(
             lambda x:  datetime.datetime.fromtimestamp(x/1000000000))).set_index(['tradetime', 'code']).sort_index()
         return res.drop_duplicates().sort_index()
 
     def get_sharpe(self, n):
-        return ((n.iloc[-1]/n.iloc[0] - 1)/len(n)*365)/abs((n.pct_change()*100).std())
+
+        a = ((n.iloc[-1]/n.iloc[0] - 1)/len(n)*365) / \
+            abs((n.pct_change()*100).std())
+        return 0 if np.isnan(a) else a
 
     def rankstrategy(self, code):
         res = pd.concat([self.get_historyassets(i) for i in code], axis=1)
@@ -140,8 +183,6 @@ class QA_QIFIMANAGER():
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1})['positions'].values())
         res = pd.DataFrame(b)
         res.name = account_cookie
-
-        # res.assign(block = )
 
         return res.assign(code=res.instrument_id).set_index('code')
 

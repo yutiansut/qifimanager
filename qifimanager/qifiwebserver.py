@@ -1,15 +1,16 @@
 from QAWebServer.basehandles import QABaseHandler
 from QAWebServer.QA_Web import start_server
 from QUANTAXIS.QAUtil import QA_util_to_json_from_pandas
-from manager import QA_QIFIMANAGER
-
+from manager import QA_QIFIMANAGER, QA_QIFISMANAGER
+from qaenv import mongo_ip
 class QAQIFI_Handler(QABaseHandler):
-    manager = QA_QIFIMANAGER('192.168.2.124')
+    #manager = QA_QIFIMANAGER(mongo_ip)
+    manager = QA_QIFISMANAGER(mongo_ip)
     def get(self):
         action = self.get_argument('action', 'acchistory')
 
         acc = self.get_argument('account_cookie', 'KTKS_t01_au2012_5min')
-        self.manager.init_account(acc)
+        manage_acc= QA_QIFIMANAGER(mongo_ip, acc)
         if action == 'acchistory':
             """
             GET http://127.0.0.1:8019/qifi?action=monthprofit
@@ -35,7 +36,7 @@ class QAQIFI_Handler(QABaseHandler):
                 }
             }
             """
-            history_assets =  self.manager.get_historyassets(acc)
+            history_assets =  manage_acc.assets
             history_assets.index = history_assets.index.map(str)
             self.write({'res': history_assets.to_dict()})
         elif action == 'monthprofit':
@@ -52,7 +53,7 @@ class QAQIFI_Handler(QABaseHandler):
                 }
             }
             """
-            self.write({'res': self.manager.month_assets_profit.to_dict()})
+            self.write({'res': manage_acc.month_assets_profit.to_dict()})
         elif action == 'historytrade':
             """
             GET http://127.0.0.1:8019/qifi?action=historytrade
@@ -82,7 +83,7 @@ class QAQIFI_Handler(QABaseHandler):
             }
             """
 
-            res = self.manager.trade.loc[:, ['commission', 'direction', 
+            res = manage_acc.trade.loc[:, ['commission', 'direction', 
                 'instrument_id', 'offset', 'price', 'trade_date_time', 'volume']].reset_index()
             res = res.assign(datetime=res.tradetime.map(str)).loc[:, ['commission', 'direction', 
                 'offset', 'price', 'trade_date_time', 'volume', 'code', 'datetime']]
