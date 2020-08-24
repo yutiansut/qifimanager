@@ -67,6 +67,9 @@ setup(
     ],
     install_requires=['quantaxis', 'qaenv', 'qifiaccount', 'quantaxis_pubsub'],
     entry_points={
+        'console_scripts': [
+            'qifi_manger=qifimanager.__init__:run_server',
+        ]
     },
     # install_requires=requirements,
     keywords=KEYWORDS,
