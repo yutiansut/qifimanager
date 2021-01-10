@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from qaenv import mongo_ip
-
+mongo_ip = '192.168.2.117'
 
 def mergex(dict1, dict2):
     dict1.update(dict2)
@@ -96,6 +96,7 @@ class QA_QIFISMANAGER():
         return value if isinstance(value, list) else [value]
 
     def get_allportfolio(self) -> list:
+        print(self.database)
         return list(set([i['portfolio'] for i in self.database.find({}, {'portfolio': 1, '_id': 0})]))
 
     def get_portfolio_account(self, portfolio) -> list:

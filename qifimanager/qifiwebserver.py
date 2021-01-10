@@ -3,6 +3,7 @@ from QAWebServer.QA_Web import start_server
 from QUANTAXIS.QAUtil import QA_util_to_json_from_pandas
 from qifimanager.manager import QA_QIFIMANAGER, QA_QIFISMANAGER
 from qaenv import mongo_ip
+mongo_ip = '192.168.2.117'
 class QAQIFI_Handler(QABaseHandler):
     #manager = QA_QIFIMANAGER(mongo_ip)
     manager = QA_QIFISMANAGER(mongo_ip)
@@ -89,7 +90,20 @@ class QAQIFI_Handler(QABaseHandler):
                 'offset', 'price', 'trade_date_time', 'volume', 'code', 'datetime']]
 
             self.write({'res': QA_util_to_json_from_pandas(res)})
-        elif action == 'accountlist':
+        
+        elif action == 'holdingpanel':
+            trading_day =  self.get_argument('trading_day')
+            res = self.manager.get_holding_panel(acc, trading_day)
+            self.write({'res': QA_util_to_json_from_pandas(res)})
+
+            
+class QAQIFIS_Handler(QABaseHandler):
+    #manager = QA_QIFIMANAGER(mongo_ip)
+    manager = QA_QIFISMANAGER(mongo_ip)
+    def get(self):
+        action = self.get_argument('action', 'acchistory')
+
+        if action == 'accountlist':
             res = self.manager.get_allaccountname()
             self.write({'res': res})
         elif action == 'portfoliolist':
@@ -100,10 +114,6 @@ class QAQIFI_Handler(QABaseHandler):
             res = self.manager.get_portfolio_panel(portfolio)
 
             self.write({'res': QA_util_to_json_from_pandas(res)})
-        elif action == 'holdingpanel':
-            trading_day =  self.get_argument('trading_day')
-            res = self.manager.get_holding_panel(acc, trading_day)
-            self.write({'res': QA_util_to_json_from_pandas(res)})
 
 if __name__ == "__main__":
-    start_server([(r"/qifi", QAQIFI_Handler)], '0.0.0.0', 8019)
+    start_server([(r"/qifi", QAQIFI_Handler), (r"/qifis", QAQIFIS_Handler)], '0.0.0.0', 8019)
