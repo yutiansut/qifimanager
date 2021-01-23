@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 from qaenv import mongo_ip
-mongo_ip = '192.168.2.117'
+#mongo_ip = '192.168.2.117'
 
 def mergex(dict1, dict2):
     dict1.update(dict2)

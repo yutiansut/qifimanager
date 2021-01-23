@@ -3,7 +3,7 @@ from QAWebServer.QA_Web import start_server
 from QUANTAXIS.QAUtil import QA_util_to_json_from_pandas
 from qifimanager.manager import QA_QIFIMANAGER, QA_QIFISMANAGER
 from qaenv import mongo_ip
-mongo_ip = '192.168.2.117'
+#mongo_ip = '192.168.2.117'
 class QAQIFI_Handler(QABaseHandler):
     #manager = QA_QIFIMANAGER(mongo_ip)
     manager = QA_QIFISMANAGER(mongo_ip)
