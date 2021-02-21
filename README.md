@@ -31,7 +31,9 @@ qifimanager分为两个
 -- 管理单个qifi账户，注重于qifi账户本身的分析（风险、绩效）  QA_QIFIMANAGER
 
 
-
+![image.png](http://picx.gulizhu.com/FlYe3WTriyboO0LiBxb5wVc-U-_1)
+![image.png](http://picx.gulizhu.com/FvTiLbpfi2CNUt7Vn0TijJx91Khi)
+![image.png](http://picx.gulizhu.com/FrZ3uoXN4p9Dmw_ndNQSWCr3t7VO)
 
 
 - 获取资金曲线:
