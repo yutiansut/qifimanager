@@ -14,7 +14,7 @@ class QAQIFI_Handler(QABaseHandler):
         action = self.get_argument('action', 'acchistory')
 
         acc = self.get_argument('account_cookie', 'KTKS_t01_au2012_5min')
-        manage_acc= QA_QIFIMANAGER(mongo_ip, acc)
+        manage_acc= QA_QIFIMANAGER(acc, mongo_ip)
         if action == 'acchistory':
             """
             GET http://127.0.0.1:8019/qifi?action=monthprofit

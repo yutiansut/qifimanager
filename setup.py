@@ -48,7 +48,7 @@ KEYWORDS = ["quantaxis", "quant", "finance", "Backtest", 'Framework']
 
 AUTHOR_EMAIL = "yutiansut@qq.com"
 
-URL = "https://github.com/yutiansut/QAStrategy"
+URL = "https://github.com/yutiansut/QIFI_MANAGER"
 
 
 LICENSE = "MIT"
@@ -65,7 +65,7 @@ setup(
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
     ],
-    install_requires=['quantaxis', 'qaenv', 'qifiaccount', 'quantaxis_pubsub'],
+    install_requires=['quantaxis', 'qaenv', 'qifiaccount', 'quantaxis_pubsub', 'empyrical', 'pyfolio-qa'],
     entry_points={
         'console_scripts': [
             'qifi_manager=qifimanager.__init__:run_server',

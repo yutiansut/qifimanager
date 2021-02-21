@@ -1,11 +1,15 @@
 import datetime
-import pymongo
-import pandas as pd
+import QUANTAXIS as QA
+import empyrical as em
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
+import pyfolio as pf
+import pymongo
 from qaenv import mongo_ip
+
 #mongo_ip = '192.168.2.117'
+
 
 def mergex(dict1, dict2):
     dict1.update(dict2)
@@ -27,20 +31,54 @@ class QA_QIFIMANAGER():
 
     """
 
-    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t01_au2012_5min'):
-        self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
+    def __init__(self, account_cookie, mongo_ip=mongo_ip, database='quantaxis', collection='history'):
+        self.database = self.change_database(database, collection)
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
 
-        self.account_cookie = account_cookie
-        self.assets = self.get_historyassets(account_cookie)
-        self.trade = self.get_historytrade(account_cookie)
 
-    def init_account(self, account_cookie):
         self.account_cookie = account_cookie
-        self.assets = self.get_historyassets(self.account_cookie)
-        self.trade = self.get_historytrade(self.account_cookie)
+        self.assets = self.get_historyassets()
+        self.trade = self.get_historytrade()
+        self.assets_start = self.assets.index[0]
+        self.assets_end = self.assets.index[-1]
+        self.benchmark_code = '000300'
+        self.benchmark_assets = self.get_benchmark_assets(self.benchmark_code,self.assets_start,self.assets_end)
+        
+    def __expr__(self):
+        return f"{self.account_cookie}- start: {self.assets_start} - end: {self.assets_end}- benchmark: {self.benchmark_code}"
+        
+    def get_benchmark_assets(self, code, start, end):
+        return QA.QA_fetch_index_day_adv(code, start, end).data.reset_index(1).close
 
+    def set_benchmark_assets(self, assets):
+        self.benchmark_assets =  assets.loc[self.assets_start, self.assets_end]
+        
+    
+    def change_database(self, database_name, collection_name):
+
+        return pymongo.MongoClient(mongo_ip).get_database(
+            database_name).get_collection(collection_name)
+
+    
+    
+    @property
+    def returns(self):
+        returns = self.assets.pct_change()
+        
+        returns.index = returns.index.tz_localize('Asia/Shanghai')
+        return returns
+        
+    @property
+    def benchmark_returns(self):
+        returns = self.benchmark_assets.pct_change()
+        try:
+            returns.index = returns.index.tz_localize('Asia/Shanghai')
+        except:
+            pass
+        return returns
+        
+        
     @property
     def month_assets(self):
         return self.assets.resample('M').last()
@@ -52,20 +90,20 @@ class QA_QIFIMANAGER():
         res.index = res.index.map(str)
         return res
 
-    def get_historyassets(self, account_cookie='KTKS_t01_au2012_5min', start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
+    def get_historyassets(self, start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
-            {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
+            {'account_cookie': self.account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
         res = res.assign(datetime=pd.to_datetime(
             res['trading_day']), balance=res.balance.apply(round, 2)).set_index('datetime').sort_index()
         res = res.balance
-        res.name = account_cookie
+        res.name = self.account_cookie
 
         return res.bfill().ffill().loc[start:end]
 
-    def get_historytrade(self, account_cookie='KTKS_t01_au2012_5min'):
+    def get_historytrade(self,):
         b = [item['trades'].values() for item in self.database.find(
-            {'account_cookie': account_cookie}, {'_id': 0, 'trades': 1, 'trading_day': 1})]
+            {'account_cookie': self.account_cookie}, {'_id': 0, 'trades': 1, 'trading_day': 1})]
         i = []
         for ix in b:
             i.extend(list(ix))
@@ -75,10 +113,22 @@ class QA_QIFIMANAGER():
             lambda x:  datetime.datetime.fromtimestamp(x/1000000000))).set_index(['tradetime', 'code']).sort_index()
         return res.drop_duplicates().sort_index()
 
+    def get_sharpe(self):
+        n = self.get_historyassets()
+        a = ((n.iloc[-1]/n.iloc[0] - 1)/len(n)*365) / \
+            abs((n.pct_change()*100).std())
+        return 0 if np.isnan(a) else a
 
+    def show_perf_stats(self, live_start_date=None):
+        pf.show_perf_stats(self.returns, self.benchmark_returns, live_start_date=live_start_date)
+
+    def create_returns_tear_sheet(self,live_start_date=None):
+        pf.create_returns_tear_sheet(self.returns,  benchmark_rets=self.benchmark_returns, live_start_date=live_start_date)
+        plt.show()
+        
 class QA_QIFISMANAGER():
     """
-    用于管理单 qifi 的历史交易情况
+    用于管理多 qifi 的历史交易情况
 
     --> 对标 QAAccount 的历史回测模式
     --> 需要增加 QARisk/ QAPerformance 部分的支持
@@ -87,7 +137,7 @@ class QA_QIFISMANAGER():
 
     """
 
-    def __init__(self, mongo_ip=mongo_ip, account_cookie='KTKS_t01_au2012_5min'):
+    def __init__(self, mongo_ip=mongo_ip, account_cookie=''):
         self.database = pymongo.MongoClient(mongo_ip).quantaxis.history
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
@@ -111,7 +161,7 @@ class QA_QIFISMANAGER():
     def get_allaccountname(self) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({}, {'account_cookie': 1, '_id': 0})]))
 
-    def get_historyassets(self, account_cookie='KTKS_t01_au2012_5min', start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
+    def get_historyassets(self, account_cookie, start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
         b = [(item['accounts']['balance'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
@@ -122,7 +172,7 @@ class QA_QIFISMANAGER():
 
         return res.bfill().ffill().loc[start:end]
 
-    def get_historytrade(self, account_cookie='KTKS_t01_au2012_5min'):
+    def get_historytrade(self, account_cookie):
         b = [item['trades'].values() for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'trades': 1, 'trading_day': 1})]
         i = []
@@ -134,12 +184,6 @@ class QA_QIFISMANAGER():
             lambda x:  datetime.datetime.fromtimestamp(x/1000000000))).set_index(['tradetime', 'code']).sort_index()
         return res.drop_duplicates().sort_index()
 
-    def get_sharpe(self, n):
-
-        a = ((n.iloc[-1]/n.iloc[0] - 1)/len(n)*365) / \
-            abs((n.pct_change()*100).std())
-        return 0 if np.isnan(a) else a
-
     def rankstrategy(self, code):
         res = pd.concat([self.get_historyassets(i) for i in code], axis=1)
         res = res.fillna(method='bfill').ffill()
@@ -148,21 +192,21 @@ class QA_QIFISMANAGER():
 
         return rp[rp > 0.5].sort_values().tail(2)
 
-    def get_historypos(self, account_cookie='KTKS_t01_au2012_5min'):
+    def get_historypos(self, account_cookie):
         b = [mergex(list(item['positions'].values())[0], {'trading_day': item['trading_day']}) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.set_index('trading_day')
 
-    def get_lastpos(self, account_cookie='KTKS_t01_au2012_5min'):
+    def get_lastpos(self, account_cookie):
         b = [mergex(list(item['positions'].values())[0], {'trading_day': item['trading_day']}) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'positions': 1, 'trading_day': 1})]
         res = pd.DataFrame(b)
         res.name = account_cookie
         return res.iloc[-1]
 
-    def get_historymargin(self, account_cookie='KTKS_t01_au2012_5min'):
+    def get_historymargin(self, account_cookie):
         b = [(item['accounts']['margin'], item['trading_day']) for item in self.database.find(
             {'account_cookie': account_cookie}, {'_id': 0, 'accounts': 1, 'trading_day': 1})]
         res = pd.DataFrame(b, columns=['balance', 'trading_day'])
