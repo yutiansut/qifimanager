@@ -36,21 +36,6 @@ qifimanager分为两个
 ![image.png](http://picx.gulizhu.com/FrZ3uoXN4p9Dmw_ndNQSWCr3t7VO)
 
 
-- 获取资金曲线:
-get_historyassets(strategyname, start, end)
-
-- 获取仓位:
-get_position(strategyname, start, end)
-
-- 获取历史仓位变化(按交易结算统计):
-get_historypos
-
-- 获取最新的仓位:
-get_lastpos
-
-- 获取历史保证金:
-get_historymargin
-
 
 ### qifimanager.qifiwebserver
 

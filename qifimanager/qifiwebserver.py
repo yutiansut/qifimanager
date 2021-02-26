@@ -117,6 +117,23 @@ class QAQIFIS_Handler(QABaseHandler):
             res = self.manager.get_portfolio_panel(portfolio)
 
             self.write({'res': QA_util_to_json_from_pandas(res)})
+    def post(self):
+        action = self.get_argument('action', 'change_name')
+        if action == 'drop_account':
+
+            account_cookie = self.get_argument('account_cookie')
+            res =  self.manager.drop_account(account_cookie)
+            self.write({
+                'res': res,
+                'status': 200
+            })
+        elif action == 'drop_many':
+            account_cookies = self.get_argument('account_cookies')
+            res =  self.manager.drop_many(account_cookies)
+            self.write({
+                'res': res,
+                'status': 200
+            })
 
 if __name__ == "__main__":
     start_server([(r"/qifi", QAQIFI_Handler), (r"/qifis", QAQIFIS_Handler)], '0.0.0.0', 8019)

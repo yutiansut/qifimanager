@@ -232,6 +232,16 @@ class QA_QIFISMANAGER():
         return res.assign(code=res.instrument_id).set_index('code')
 
 
+    def drop_account(self, account_cookie):
+        self.database.delete_many({'account_cookie': account_cookie})
+
+    def drop_many(self, account_cookies):
+        account_cookies = promise_list(account_cookies)
+        self.database.delete_many({'account_cookie': {'$IN': account_cookies}})
+
+
+
+
 if __name__ == "__main__":
     manager = QA_QIFIMANAGER('192.168.2.124')
     # #acc = manager.get_allaccountname()
