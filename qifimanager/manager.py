@@ -7,7 +7,7 @@ import pandas as pd
 import pyfolio as pf
 import pymongo
 from qaenv import mongo_ip
-
+import re
 #mongo_ip = '192.168.2.117'
 
 
@@ -36,39 +36,36 @@ class QA_QIFIMANAGER():
         self.database.create_index([("account_cookie", pymongo.ASCENDING),
                                     ("trading_day", pymongo.ASCENDING)], unique=True)
 
-
         self.account_cookie = account_cookie
         self.assets = self.get_historyassets()
         self.trade = self.get_historytrade()
         self.assets_start = self.assets.index[0]
         self.assets_end = self.assets.index[-1]
         self.benchmark_code = '000300'
-        self.benchmark_assets = self.get_benchmark_assets(self.benchmark_code,self.assets_start,self.assets_end)
-        
+        self.benchmark_assets = self.get_benchmark_assets(
+            self.benchmark_code, self.assets_start, self.assets_end)
+
     def __expr__(self):
         return f"{self.account_cookie}- start: {self.assets_start} - end: {self.assets_end}- benchmark: {self.benchmark_code}"
-        
+
     def get_benchmark_assets(self, code, start, end):
         return QA.QA_fetch_index_day_adv(code, start, end).data.reset_index(1).close
 
     def set_benchmark_assets(self, assets):
-        self.benchmark_assets =  assets.loc[self.assets_start, self.assets_end]
-        
-    
+        self.benchmark_assets = assets.loc[self.assets_start, self.assets_end]
+
     def change_database(self, database_name, collection_name):
 
         return pymongo.MongoClient(mongo_ip).get_database(
             database_name).get_collection(collection_name)
 
-    
-    
     @property
     def returns(self):
         returns = self.assets.pct_change()
-        
+
         returns.index = returns.index.tz_localize('Asia/Shanghai')
         return returns
-        
+
     @property
     def benchmark_returns(self):
         returns = self.benchmark_assets.pct_change()
@@ -77,8 +74,7 @@ class QA_QIFIMANAGER():
         except:
             pass
         return returns
-        
-        
+
     @property
     def month_assets(self):
         return self.assets.resample('M').last()
@@ -120,12 +116,15 @@ class QA_QIFIMANAGER():
         return 0 if np.isnan(a) else a
 
     def show_perf_stats(self, live_start_date=None):
-        pf.show_perf_stats(self.returns, self.benchmark_returns, live_start_date=live_start_date)
+        pf.show_perf_stats(self.returns, self.benchmark_returns,
+                           live_start_date=live_start_date)
 
-    def create_returns_tear_sheet(self,live_start_date=None):
-        pf.create_returns_tear_sheet(self.returns,  benchmark_rets=self.benchmark_returns, live_start_date=live_start_date)
+    def create_returns_tear_sheet(self, live_start_date=None):
+        pf.create_returns_tear_sheet(
+            self.returns,  benchmark_rets=self.benchmark_returns, live_start_date=live_start_date)
         plt.show()
-        
+
+
 class QA_QIFISMANAGER():
     """
     用于管理多 qifi 的历史交易情况
@@ -152,6 +151,9 @@ class QA_QIFISMANAGER():
     def get_portfolio_account(self, portfolio) -> list:
         return list(set([i['account_cookie'] for i in self.database.find({'portfolio': portfolio}, {'account_cookie': 1, '_id': 0})]))
 
+    def query_re(self, text) -> list:
+        return list(set([i['account_cookie'] for i in self.database.find({'account_cookie': {"$regex": text}}, {'account_cookie': 1, '_id': 0})]))
+
     def get_portfolio_panel(self, portfolio) -> pd.DataFrame:
         r = self.get_portfolio_account(portfolio)
         rp = [self.database.find_one({'account_cookie': i}, {
@@ -171,6 +173,17 @@ class QA_QIFISMANAGER():
         res.name = account_cookie
 
         return res.bfill().ffill().loc[start:end]
+
+    def get_portfolio_assets(self, portfolio, start='1990-01-01', end=str(datetime.date.today())) -> pd.Series:
+        """
+                        KTKS_t05_au2106_15min  KTKS_t04b_au2106_5min  KTKS_t12_au2106_30min  KTKS_t04_au2106_15min  ...  KTKS_t01_au2106_15min  KTKS_t03_au2106_15min  KTKS_t01b2_au2106_5min  KTKS_t15_au2106_5min
+        datetime                                                                                                ...
+        2020-01-02                 100000                 100000                 100000                 100000  ...                 100000                 100000                  100000                 99340
+        2020-01-03                 100000                 100723                 100000                 100000  ...                 101080                 101099                  102880                104310
+        2020-01-06                 100000                 108153                 100000                 100000  ...                 108510                 108529                  110310                108830       
+        2020-01-07                 100000                 104813                 100000                 100000  ...                 104930                 105189                  110030                109790       
+        """
+        return pd.concat([self.get_historyassets(acc, start, end) for acc in portfolio], axis=1)
 
     def get_historytrade(self, account_cookie):
         b = [item['trades'].values() for item in self.database.find(
@@ -217,6 +230,9 @@ class QA_QIFISMANAGER():
         return res
 
     def get_holding_panel(self, account_cookie, trading_day):
+        # print(self.database)
+        # print(account_cookie)
+        # print(trading_day)
         b = list(self.database.find_one(
             {'account_cookie': account_cookie, 'trading_day': trading_day}, {'_id': 0, 'positions': 1})['positions'].values())
         res = pd.DataFrame(b)
@@ -231,15 +247,12 @@ class QA_QIFISMANAGER():
 
         return res.assign(code=res.instrument_id).set_index('code')
 
-
     def drop_account(self, account_cookie):
         self.database.delete_many({'account_cookie': account_cookie})
 
     def drop_many(self, account_cookies):
         account_cookies = promise_list(account_cookies)
         self.database.delete_many({'account_cookie': {'$IN': account_cookies}})
-
-
 
 
 if __name__ == "__main__":
